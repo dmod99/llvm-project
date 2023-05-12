@@ -94,6 +94,59 @@ public:
   }
 };
 
+class AOType : public Type {
+  friend class LLVMContextImpl;
+
+protected:
+  explicit AOType(LLVMContext &C, unsigned NumBits) : Type(C, AOTyID){
+    setSubclassData(NumBits);
+  }
+
+public:
+  /// This enum is just used to hold constants we need for AOType.
+  enum {
+    MIN_INT_BITS = 1,        ///< Minimum number of bits that can be specified
+    MAX_INT_BITS = (1<<23)   ///< Maximum number of bits that can be specified
+      ///< Note that bit width is stored in the Type classes SubclassData field
+      ///< which has 24 bits. SelectionDAG type legalization can require a
+      ///< power of 2 AOType, so limit to the largest representable power
+      ///< of 2, 8388608.
+  };
+
+  /// This static method is the primary way of constructing an AOType.
+  /// If an AOType with the same NumBits value was previously instantiated,
+  /// that instance will be returned. Otherwise a new one will be created. Only
+  /// one instance with a given NumBits value is ever created.
+  /// Get or create an AOType instance.
+  static AOType *get(LLVMContext &C, unsigned NumBits);
+  APInt getMask() const;
+
+  /// Get the number of bits in this AOType
+  unsigned getBitWidth() const { return getSubclassData(); }
+
+  /// Return a bitmask with ones set for all of the bits that can be set by an
+  /// unsigned version of this type. This is 0xFF for i8, 0xFFFF for i16, etc.
+  uint64_t getBitMask() const {
+    return ~uint64_t(0UL) >> (64-getBitWidth());
+  }
+
+  /// Return a uint64_t with just the most significant bit set (the sign bit, if
+  /// the value is treated as a signed number).
+  uint64_t getSignBit() const {
+    return 1ULL << (getBitWidth()-1);
+  }
+
+  /// For example, this is 0xFF for an 8 bit integer, 0xFFFF for i16, etc.
+  /// @returns a bit mask with ones set for all the bits of this type.
+  /// Get a bit mask for this type.
+  APInt getMask() const;
+
+  /// Methods for support type inquiry through isa, cast, and dyn_cast.
+  static bool classof(const Type *T) {
+    return T->getTypeID() == AOTyID;
+  }
+};
+
 unsigned Type::getIntegerBitWidth() const {
   return cast<IntegerType>(this)->getBitWidth();
 }

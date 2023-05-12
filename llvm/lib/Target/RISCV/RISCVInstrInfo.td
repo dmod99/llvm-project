@@ -553,6 +553,11 @@ class Store_rri<bits<3> funct3, string opcodestr>
               (ins GPR:$rs2, GPRMem:$rs1, simm12:$imm12),
               opcodestr, "$rs2, ${imm12}(${rs1})">;
 
+class Store_rri_new<bits<3> funct3, string opcodestr>
+    : RVInstS<funct3, OPC_STORE, (outs),
+              (ins GPR:$rs2, AOReg:$rs1, simm12:$imm12),
+              opcodestr, "$rs2, ${imm12}(${rs1})">;
+
 class HStore_rr<bits<7> funct7, string opcodestr>
     : RVInstR<funct7, 0b100, OPC_SYSTEM, (outs),
               (ins GPR:$rs2, GPRMemZeroOffset:$rs1),
@@ -661,7 +666,7 @@ def LHU : Load_ri<0b101, "lhu">, Sched<[WriteLDH, ReadMemBase]>;
 
 def SB : Store_rri<0b000, "sb">, Sched<[WriteSTB, ReadStoreData, ReadMemBase]>;
 def SH : Store_rri<0b001, "sh">, Sched<[WriteSTH, ReadStoreData, ReadMemBase]>;
-def SW : Store_rri<0b010, "sw">, Sched<[WriteSTW, ReadStoreData, ReadMemBase]>;
+def SW : Store_rri_new<0b010, "sw">, Sched<[WriteSTW, ReadStoreData, ReadMemBase]>;
 
 // ADDI isn't always rematerializable, but isReMaterializable will be used as
 // a hint which is verified in isReallyTriviallyReMaterializable.
@@ -1048,7 +1053,7 @@ def : InstAlias<"sb $rs2, (${rs1})",
 def : InstAlias<"sh $rs2, (${rs1})",
                 (SH  GPR:$rs2, GPR:$rs1, 0)>;
 def : InstAlias<"sw $rs2, (${rs1})",
-                (SW  GPR:$rs2, GPR:$rs1, 0)>;
+                (SW  GPR:$rs2, AOReg:$rs1, 0)>;
 
 def : InstAlias<"add $rd, $rs1, $imm12",
                 (ADDI  GPR:$rd, GPR:$rs1, simm12:$imm12)>;
@@ -1662,10 +1667,15 @@ multiclass StPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy,
   def : Pat<(StoreOp (vt StTy:$rs2), (AddrRegImm GPR:$rs1, simm12:$imm12)),
             (Inst StTy:$rs2, GPR:$rs1, simm12:$imm12)>;
 }
+multiclass StPat_new<PatFrag StoreOp, RVInst Inst, RegisterClass StTy,
+                 ValueType vt> {
+  def : Pat<(StoreOp (vt StTy:$rs2), (AddrRegImm AOReg:$rs1, simm12:$imm12)),
+            (Inst StTy:$rs2, AOReg:$rs1, simm12:$imm12)>;
+}
 
 defm : StPat<truncstorei8, SB, GPR, XLenVT>;
 defm : StPat<truncstorei16, SH, GPR, XLenVT>;
-defm : StPat<store, SW, GPR, i32>, Requires<[IsRV32]>;
+defm : StPat_new<store, SW, GPR, i32>, Requires<[IsRV32]>;
 
 /// Fences
 
@@ -1846,7 +1856,7 @@ defm : LdPat<load, LD, i64>;
 
 /// Stores
 
-defm : StPat<truncstorei32, SW, GPR, i64>;
+defm : StPat_new<truncstorei32, SW, GPR, i64>;
 defm : StPat<store, SD, GPR, i64>;
 } // Predicates = [IsRV64]
 

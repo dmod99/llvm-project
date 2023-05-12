@@ -266,6 +266,12 @@ class CStackStore<bits<3> funct3, string OpcodeStr,
     : RVInst16CSS<funct3, 0b10, (outs), (ins cls:$rs2, SPMem:$rs1, opnd:$imm),
                   OpcodeStr, "$rs2, ${imm}(${rs1})">;
 
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+class CStackStore_new<bits<3> funct3, string OpcodeStr,
+                  RegisterClass cls, DAGOperand opnd>
+    : RVInst16CSS<funct3, 0b10, (outs), (ins cls:$rs2, AOReg:$rs1, opnd:$imm),
+                  OpcodeStr, "$rs2, ${imm}(${rs1})">;
+
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
 class CLoad_ri<bits<3> funct3, string OpcodeStr,
                RegisterClass cls, DAGOperand opnd>
@@ -276,6 +282,12 @@ let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 class CStore_rri<bits<3> funct3, string OpcodeStr,
                  RegisterClass cls, DAGOperand opnd>
     : RVInst16CS<funct3, 0b00, (outs), (ins cls:$rs2,GPRCMem:$rs1, opnd:$imm),
+                 OpcodeStr, "$rs2, ${imm}(${rs1})">;
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+class CStore_rri_new<bits<3> funct3, string OpcodeStr,
+                 RegisterClass cls, DAGOperand opnd>
+    : RVInst16CS<funct3, 0b00, (outs), (ins cls:$rs2,AOReg:$rs1, opnd:$imm),
                  OpcodeStr, "$rs2, ${imm}(${rs1})">;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
@@ -373,7 +385,7 @@ def C_FSD  : CStore_rri<0b101, "c.fsd", FPR64C, uimm8_lsb000>,
   let Inst{6-5} = imm{7-6};
 }
 
-def C_SW : CStore_rri<0b110, "c.sw", GPRC, uimm7_lsb00>,
+def C_SW : CStore_rri_new<0b110, "c.sw", GPRC, uimm7_lsb00>,
            Sched<[WriteSTW, ReadStoreData, ReadMemBase]> {
   bits<7> imm;
   let Inst{12-10} = imm{5-3};
@@ -586,7 +598,7 @@ def C_FSDSP  : CStackStore<0b101, "c.fsdsp", FPR64, uimm9_lsb000>,
   let Inst{9-7}   = imm{8-6};
 }
 
-def C_SWSP : CStackStore<0b110, "c.swsp", GPR, uimm8_lsb00>,
+def C_SWSP : CStackStore_new<0b110, "c.swsp", GPR, uimm8_lsb00>,
              Sched<[WriteSTW, ReadStoreData, ReadMemBase]> {
   let Inst{12-9} = imm{5-2};
   let Inst{8-7}  = imm{7-6};
@@ -734,9 +746,9 @@ def : InstAlias<"c.ntl.all", (C_ADD_HINT X0, X5)>;
 let EmitPriority = 0 in {
 let Predicates = [HasStdExtCOrZca] in {
 def : InstAlias<"c.lw $rd, (${rs1})", (C_LW GPRC:$rd, GPRCMem:$rs1, 0)>;
-def : InstAlias<"c.sw $rs2, (${rs1})", (C_SW GPRC:$rs2, GPRCMem:$rs1, 0)>;
+def : InstAlias<"c.sw $rs2, (${rs1})", (C_SW GPRC:$rs2, AOReg:$rs1, 0)>;
 def : InstAlias<"c.lwsp $rd, (${rs1})", (C_LWSP GPRC:$rd, SPMem:$rs1, 0)>;
-def : InstAlias<"c.swsp $rs2, (${rs1})", (C_SWSP GPRC:$rs2, SPMem:$rs1, 0)>;
+def : InstAlias<"c.swsp $rs2, (${rs1})", (C_SWSP GPRC:$rs2, AOReg:$rs1, 0)>;
 }
 
 let Predicates = [HasStdExtCOrZca, IsRV64] in {
@@ -894,8 +906,8 @@ def : CompressPat<(FSD FPR64C:$rs2, GPRCMem:$rs1, uimm8_lsb000:$imm),
 } // Predicates = [HasStdExtCOrZcd, HasStdExtD]
 
 let Predicates = [HasStdExtCOrZca] in {
-def : CompressPat<(SW GPRC:$rs2, GPRCMem:$rs1, uimm7_lsb00:$imm),
-                  (C_SW GPRC:$rs2, GPRCMem:$rs1, uimm7_lsb00:$imm)>;
+def : CompressPat<(SW GPRC:$rs2, AOReg:$rs1, uimm7_lsb00:$imm),
+                  (C_SW GPRC:$rs2, AOReg:$rs1, uimm7_lsb00:$imm)>;
 } // Predicates = [HasStdExtCOrZca]
 
 let Predicates = [HasStdExtCOrZcf, HasStdExtF, IsRV32] in {
@@ -1033,8 +1045,8 @@ def : CompressPat<(FSD FPR64:$rs2, SPMem:$rs1, uimm9_lsb000:$imm),
 } // Predicates = [HasStdExtCOrZcd, HasStdExtD]
 
 let Predicates = [HasStdExtCOrZca] in {
-def : CompressPat<(SW GPR:$rs2, SPMem:$rs1, uimm8_lsb00:$imm),
-                  (C_SWSP GPR:$rs2, SPMem:$rs1, uimm8_lsb00:$imm)>;
+def : CompressPat<(SW GPR:$rs2, AOReg:$rs1, uimm8_lsb00:$imm),
+                  (C_SWSP GPR:$rs2, AOReg:$rs1, uimm8_lsb00:$imm)>;
 } // Predicates = [HasStdExtCOrZca]
 
 let Predicates = [HasStdExtCOrZcf, HasStdExtF, IsRV32] in {

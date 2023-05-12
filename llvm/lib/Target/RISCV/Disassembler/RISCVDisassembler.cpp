@@ -70,6 +70,18 @@ static DecodeStatus DecodeGPRRegisterClass(MCInst &Inst, uint32_t RegNo,
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
+static DecodeStatus DecodeAORegRegisterClass(MCInst &Inst, uint32_t RegNo,
+                                           uint64_t Address,
+                                           const MCDisassembler *Decoder) {
+  bool IsRVE = Decoder->getSubtargetInfo().hasFeature(RISCV::FeatureRVE);
+
+  if (RegNo >= 32 || (IsRVE && RegNo >= 16))
+    return MCDisassembler::Fail;
+
+  MCRegister Reg = RISCV::AO;
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
 
 static DecodeStatus DecodeFPR16RegisterClass(MCInst &Inst, uint32_t RegNo,
                                              uint64_t Address,
@@ -145,6 +157,7 @@ DecodeGPRNoX0X2RegisterClass(MCInst &Inst, uint64_t RegNo, uint32_t Address,
 
   return DecodeGPRNoX0RegisterClass(Inst, RegNo, Address, Decoder);
 }
+
 
 static DecodeStatus DecodeGPRCRegisterClass(MCInst &Inst, uint32_t RegNo,
                                             uint64_t Address,

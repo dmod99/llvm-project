@@ -131,7 +131,23 @@ def GPR : RegisterClass<"RISCV", [XLenVT], 32, (add
   )> {
   let RegInfos = XLenRI;
 }
-
+def AO  : RISCVReg<31, "AO", ["AO"]>;
+def AOReg : RegisterClass<"RISCV", [i16], 16, (add AO)>{
+  let RegInfos = XLenRI;
+}
+/*class RISCVAOReg<bits<5> Enc, string n, list<string> alt = []> : Register<n> {
+  let HWEncoding{4-0} = Enc;
+  let AltNames = alt;
+}
+let RegAltNameIndices = [ABIRegAltName] in {
+  foreach Index = 0-1 in {
+    def AO#Index : RISCVAOReg<Index, "ao#Index", ["ao#Index"]>, 
+    DwarfRegNum<[700]>;
+  }
+}
+def AOReg : RegisterClass<"RISCV", [i32], 32, (add
+    (sequence "AO%u", 0, 1)
+  )>;*/
 def GPRX0 : RegisterClass<"RISCV", [XLenVT], 32, (add X0)> {
   let RegInfos = XLenRI;
 }

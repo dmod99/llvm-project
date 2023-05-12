@@ -77,6 +77,7 @@ public:
     ScalableVectorTyID, ///< Scalable SIMD vector type
     TypedPointerTyID,   ///< Typed pointer used by some GPU targets
     TargetExtTyID,      ///< Target extension type
+    AOTyID,             ///< AO Register type
   };
 
 private:
@@ -476,6 +477,7 @@ public:
   static IntegerType *getInt32Ty(LLVMContext &C);
   static IntegerType *getInt64Ty(LLVMContext &C);
   static IntegerType *getInt128Ty(LLVMContext &C);
+  static AOType *getAOTy(LLVMContext &C);
   template <typename ScalarTy> static Type *getScalarTy(LLVMContext &C) {
     int noOfBits = sizeof(ScalarTy) * CHAR_BIT;
     if (std::is_integral<ScalarTy>::value) {
